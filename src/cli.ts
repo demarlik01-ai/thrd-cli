@@ -135,6 +135,11 @@ program
       process.exit(1);
     }
 
+    if (opts.image && opts.video) {
+      console.error(chalk.red("✗"), "Cannot use both --image and --video. Use 'carousel' for multiple media.");
+      process.exit(1);
+    }
+
     if (opts.dryRun) {
       const preview = { dry_run: true, text: text ?? null, image: opts.image ?? null, video: opts.video ?? null, reply_to: opts.replyTo ?? null };
       if (jsonOutput) { printJson(preview); } else { console.log(chalk.yellow("[dry-run]"), JSON.stringify(preview, null, 2)); }

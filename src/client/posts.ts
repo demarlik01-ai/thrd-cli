@@ -150,6 +150,8 @@ export async function createCarouselPost(
   if (options?.reply_control) body.reply_control = options.reply_control;
 
   const carousel = await client.request<{ id: string }>("POST", `${userId}/threads`, body);
+  // Poll carousel parent container status before publishing
+  await pollContainerStatus(client, carousel.id);
   return publishContainer(client, carousel.id);
 }
 

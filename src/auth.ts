@@ -13,6 +13,7 @@ const SCOPES = [
   "threads_read_replies",
   "threads_manage_replies",
   "threads_manage_insights",
+  "threads_delete",
 ].join(",");
 
 interface TokenResponse {
@@ -164,11 +165,11 @@ async function exchangeForLongLivedToken(
 /** Refresh a long-lived token */
 export async function refreshToken(accessToken: string): Promise<LongLivedTokenResponse> {
   const params = new URLSearchParams({
-    grant_type: "th_exchange_token",
+    grant_type: "th_refresh_token",
     access_token: accessToken,
   });
 
-  const res = await fetch(`${EXCHANGE_URL}?${params.toString()}`);
+  const res = await fetch(`https://graph.threads.net/refresh_access_token?${params.toString()}`);
 
   if (!res.ok) {
     const text = await res.text();
