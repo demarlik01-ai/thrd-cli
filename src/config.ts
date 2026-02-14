@@ -1,5 +1,6 @@
 import { resolve } from "path";
-import { existsSync, readFileSync, statSync, mkdirSync, writeFileSync } from "fs";
+import { homedir } from "os";
+import { existsSync, readFileSync, statSync, mkdirSync, writeFileSync, chmodSync } from "fs";
 
 export interface ThreadsConfig {
   app_id: string;
@@ -17,7 +18,7 @@ interface ConfigFile {
   expires_at?: string;
 }
 
-const CONFIG_DIR = resolve(process.env.HOME ?? "~", ".config/thrd-cli");
+const CONFIG_DIR = resolve(process.env.HOME ?? homedir(), ".config/thrd-cli");
 const CONFIG_PATH = resolve(CONFIG_DIR, "config.json");
 
 /**
@@ -45,7 +46,7 @@ export function loadConfig(): ThreadsConfig {
   const app_id = process.env.THREADS_APP_ID ?? fileConfig.app_id;
   const app_secret = process.env.THREADS_APP_SECRET ?? fileConfig.app_secret;
   const access_token = process.env.THREADS_ACCESS_TOKEN ?? fileConfig.access_token;
-  const user_id = fileConfig.user_id;
+  const user_id = process.env.THREADS_USER_ID ?? fileConfig.user_id;
   const expires_at = fileConfig.expires_at;
 
   if (!app_id || !app_secret || !access_token) {
@@ -93,4 +94,6 @@ export function saveConfig(config: ConfigFile): void {
 
   const merged = { ...existing, ...config };
   writeFileSync(CONFIG_PATH, JSON.stringify(merged, null, 2) + "\n", { mode: 0o600 });
+  // Ensure permissions are correct even if file already existed
+  try { chmodSync(CONFIG_PATH, 0o600); } catch { /* ignore */ }
 }
