@@ -54,6 +54,14 @@
   ],
   "author": "demarlik01-ai",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/demarlik01-ai/thrd-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/demarlik01-ai/thrd-cli/issues"
+  },
+  "homepage": "https://github.com/demarlik01-ai/thrd-cli#readme",
   "engines": {
     "node": ">=18"
   },

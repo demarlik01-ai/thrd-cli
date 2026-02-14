@@ -20,6 +20,15 @@ function getClient(): ThreadsClient {
   });
 }
 
+/** Ensure client has user_id; if missing, fetch via /me and save to config */
+async function ensureUserId(client: ThreadsClient): Promise<void> {
+  if (client.userId) return;
+  const user = await profiles.me(client);
+  client.userId = user.id;
+  saveConfig({ user_id: user.id });
+  if (!jsonOutput) console.log(chalk.dim(`Auto-resolved user_id: ${user.id}`));
+}
+
 function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2));
 }
@@ -99,6 +108,10 @@ program
   .action(async () => {
     const client = getClient();
     const user = await profiles.me(client);
+    // Auto-save user_id to config if not already set
+    if (!client.userId && user.id) {
+      saveConfig({ user_id: user.id });
+    }
     if (jsonOutput) { printJson(user); return; }
     console.log(chalk.bold(`@${user.username ?? user.id}`));
     if (user.threads_biography) console.log(user.threads_biography);
@@ -129,6 +142,7 @@ program
     }
 
     const client = getClient();
+    await ensureUserId(client);
     const result = await posts.createPost(client, text ?? "", {
       image_url: opts.image,
       video_url: opts.video,
@@ -155,6 +169,7 @@ program
     }
 
     const client = getClient();
+    await ensureUserId(client);
     const result = await posts.createCarouselPost(client, text, opts.media, {
       reply_control: opts.replyControl as import("./client/types.js").ReplyControl | undefined,
     });
@@ -181,6 +196,7 @@ program
   .option("-n, --limit <n>", "Number of threads", "10")
   .action(async (opts: { limit: string }) => {
     const client = getClient();
+    await ensureUserId(client);
     const result = await posts.getUserThreads(client, { limit: parseInt(opts.limit, 10) });
     if (jsonOutput) { printJson(result); return; }
 
@@ -203,6 +219,7 @@ program
   .description("Reply to a thread")
   .action(async (threadId: string, text: string) => {
     const client = getClient();
+    await ensureUserId(client);
     const result = await posts.createPost(client, text, { reply_to_id: threadId });
     if (jsonOutput) { printJson(result); return; }
     console.log(chalk.green("✓ Replied"), chalk.dim(`(id: ${result.id})`));
