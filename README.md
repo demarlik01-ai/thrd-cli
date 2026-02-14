@@ -43,7 +43,30 @@ npx thrd-cli post "Hello!"
 5. Add a **Threads tester** (your Threads username) under the app settings
 6. Accept the tester invitation at [Threads Settings](https://www.threads.net/settings/account)
 
-### 2. Authenticate
+### 2. Generate Access Token
+
+The easiest way — use Meta's built-in token generator:
+
+1. Go to **Use Cases > Customize > Settings** in your app dashboard
+2. Scroll down to **"User Token Generator"**
+3. Click **"Generate Access Token"** next to your Threads tester account
+4. Copy the generated long-lived access token
+
+Then create `~/.config/thrd-cli/config.json`:
+```json
+{
+  "app_id": "your_app_id",
+  "app_secret": "your_app_secret",
+  "access_token": "your_access_token"
+}
+```
+
+```bash
+# Make sure the file is not world-readable
+chmod 600 ~/.config/thrd-cli/config.json
+```
+
+### 2b. Authenticate via CLI (alternative)
 
 ```bash
 thrd auth
