@@ -1,5 +1,10 @@
-import { createServer, type IncomingMessage, type ServerResponse } from "http";
+import { createServer as createHttpsServer } from "https";
+import type { IncomingMessage, ServerResponse } from "http";
 import { randomBytes } from "crypto";
+import { execSync } from "child_process";
+import { mkdtempSync, readFileSync, rmSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 import open from "open";
 import { saveConfig } from "./config.js";
 
@@ -15,6 +20,47 @@ const SCOPES = [
   "threads_manage_insights",
   "threads_delete",
 ].join(",");
+
+/**
+ * Generate a self-signed certificate for the local HTTPS callback server.
+ * Requires `openssl` CLI (available on macOS, Linux, and most Windows dev environments).
+ */
+function generateSelfSignedCert(): { key: string; cert: string; cleanup: () => void } {
+  const tmp = mkdtempSync(join(tmpdir(), "thrd-cert-"));
+  const keyPath = join(tmp, "key.pem");
+  const certPath = join(tmp, "cert.pem");
+
+  try {
+    execSync(
+      [
+        "openssl", "req", "-x509",
+        "-newkey", "rsa:2048",
+        "-keyout", keyPath,
+        "-out", certPath,
+        "-days", "1",
+        "-nodes",
+        "-subj", "/CN=localhost",
+      ].join(" "),
+      { stdio: "ignore" },
+    );
+  } catch {
+    rmSync(tmp, { recursive: true, force: true });
+    throw new Error(
+      "Failed to generate a self-signed certificate. Is OpenSSL installed?\n" +
+      "  macOS:   brew install openssl\n" +
+      "  Ubuntu:  sudo apt install openssl\n" +
+      "  Windows: https://slproweb.com/products/Win32OpenSSL.html",
+    );
+  }
+
+  const key = readFileSync(keyPath, "utf-8");
+  const cert = readFileSync(certPath, "utf-8");
+  const cleanup = () => {
+    try { rmSync(tmp, { recursive: true, force: true }); } catch { /* ignore */ }
+  };
+
+  return { key, cert, cleanup };
+}
 
 interface TokenResponse {
   access_token: string;
@@ -36,7 +82,7 @@ export async function authenticate(
   appSecret: string,
   port = 3000,
 ): Promise<void> {
-  const redirectUri = `http://localhost:${port}/callback`;
+  const redirectUri = `https://localhost:${port}/callback`;
   const state = randomBytes(16).toString("hex");
 
   const code = await getAuthorizationCode(appId, redirectUri, state, port);
@@ -63,8 +109,9 @@ function getAuthorizationCode(
   port: number,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-      const url = new URL(req.url ?? "/", `http://localhost:${port}`);
+    const tlsOptions = generateSelfSignedCert();
+    const server = createHttpsServer(tlsOptions, (req: IncomingMessage, res: ServerResponse) => {
+      const url = new URL(req.url ?? "/", `https://localhost:${port}`);
       if (url.pathname !== "/callback") {
         res.writeHead(404);
         res.end("Not found");
@@ -110,7 +157,11 @@ function getAuthorizationCode(
       });
     });
 
-    server.on("error", reject);
+    server.on("error", (err) => {
+      tlsOptions.cleanup();
+      reject(err);
+    });
+    server.on("close", () => tlsOptions.cleanup());
   });
 }
 
