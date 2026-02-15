@@ -106,10 +106,8 @@ export async function createPost(
     reply_control: options?.reply_control,
   });
 
-  // Poll status for media posts
-  if (media_type !== "TEXT") {
-    await pollContainerStatus(client, container.id);
-  }
+  // Poll status for all post types (TEXT containers may also need processing time)
+  await pollContainerStatus(client, container.id);
 
   return publishContainer(client, container.id);
 }
