@@ -1,6 +1,6 @@
 # thrd-cli
 
-📐 [Architecture](./docs/ARCHITECTURE.md) | [아키텍처 (한국어)](./docs/ARCHITECTURE-ko.md)
+📖 [한국어 문서](./README-ko.md) | 📐 [Architecture](./docs/ARCHITECTURE.md) | [아키텍처 (한국어)](./docs/ARCHITECTURE-ko.md)
 
 A fast, lightweight CLI for the Meta Threads API.
 
